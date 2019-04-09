@@ -1,6 +1,7 @@
 import chess.pgn
 import chess
 import random
+import numpy as np
 
 # Open data
 dataPath = "data/games.pgn"
@@ -9,23 +10,18 @@ numWhiteMoves = 1000000
 numBlackMoves = 1000000
 
 
-def getValidMoves(node):
+def getValidMoves(game):
     validMoves = []
-    moveCount = 0
 
-    while not node.is_end():
-        # Retrieve next move
-        nextNode = game.variation(0)
-
-        # Retrieve move
-        move = (game.board().san(nextNode.move))
-        moveCount += 1
-
+    # Iterate over moves in game
+    for i, move in enumerate(game.mainline_moves()):
         # Filter out first five moves and captures
-        if(("x" not in move) and (moveCount > 5):
-            validMoves.append(moveCount)
+        # These are filtered according to the methodology presented in the deepchess paper
+        if(not game.board().is_capture(move) and (i >= 5)):
+            # Append the move index to the validMoves list
+            validMoves.append(i)
 
-        game = nextNode
+    return validMoves
 
 def getBitboard(board):
     """
@@ -47,8 +43,8 @@ def getBitboard(board):
 
     for i in range(64):
         if board.piece_at(i):
-            color = int(board.piece_at(i).color) + 1
-            bitboard[(piece_idx[board.piece_at(i).symbol().lower()] + i * 6) * color] = 1
+            color = int(board.piece_at(i).color)
+            bitboard[(6*color + pieceIndices[board.piece_at(i).symbol().lower()] + 12*i)] = 1
 
     bitboard[-1] = int(board.turn)
     bitboard[-2] = int(board.has_kingside_castling_rights(True))
@@ -59,23 +55,12 @@ def getBitboard(board):
     return bitboard
 
 def getBitboards(game, selectedMoves):
-    # Instantiate a new chess board
-    board = chess.Board()
-    moveCount = 1
-
-    bitboards = []
-
-    for move in game.main_line():
-        # Push new move to board
-        board.push(move)
-
-        if moveCount in selectedMoves:
-            bitboards.append(getBitboard(board))
 
 
-        moveCount += 1
+    return bitboards
 
-def addMoves(game):
+# Adds 10 moves from game to moveArray at location moveIndex
+def addMoves(game, moveArray, moveIndex):
     # Retrieve all vandidates for valid moves from the game
     # Candidates are moves that are not the first 5 and are not captures
     validMoves = getValidMoves(game)
@@ -86,35 +71,83 @@ def addMoves(game):
         if(not validMoves):
             break
 
-        # Select move
+        # Select move randomly, remove from valid moves
         move = random.choice(validMoves)
         validMoves.remove(move)
         selectedMoves.append(move)
 
-    bitboards = getBitboards(game, selectedMoves)
+    #print(selectedMoves)
 
-    return bitboards
+    # Instantiate a new chess board
+    board = chess.Board()
+    moveCount = 0
+    for i, move in enumerate(game.mainline_moves()):
+        # Push new move to board
+        board.push(move)
 
+        # Break if maximum number of moves already reached
+        if(moveIndex >= moveArray.shape[0]):
+            break
 
-def iterateOverData(pgn):
-    whiteMoves = []
-    blackMoves = []
+        # Check if the current move is one of the selected moves
+        if(i in selectedMoves):
+            moveArray[moveIndex] = getBitboard(board)
+            moveIndex += 1
+
+    return moveIndex
+
+# iterateOverData
+# Iterates over the provided pgn file and extracts 10 random moves.
+# The data is stored in numpy arrays
+# Continues iterating until end of file or until the desired number of boards for each color win has been reached
+def iterateOverData():
+    # Initialize numpy arrays to store white and black moves
+    whiteMoves = np.zeros((numWhiteMoves, 2*6*64  + 5))
+    blackMoves = np.zeros((numBlackMoves, 2*6*64  + 5))
+
+    # White and black move counts store how many white and black moves have been stored
+    whiteMoveIndex = 0
+    blackMoveIndex = 0
+    count = 0
 
     # Openfile containing chess game data
     pgn = open(dataPath)
 
-    # Add stopping condition
+    # Loop over games in file
     while True:
+        # Debug printing
+        if(count % 1000 == 0):
+            print("Game Number: {count}\tWhite Moves: {whiteMoves}\tBlack Moves: {blackMoves}".format(
+                count = count,
+                blackMoves = blackMoveIndex,
+                whiteMoves = whiteMoveIndex))
+
         # Read in a single game from file
         game = chess.pgn.read_game(pgn)
 
-        # Exit if end of file reached
-        if not game:
+        # Exit if end of file reached or if desired number of moves reached
+        if((not game) or (whiteMoveIndex >= numWhiteMoves and blackMoveIndex >= numBlackMoves)):
             break
+        if(game.headers["Result"] == "1-0" and whiteMoveIndex < numWhiteMoves):
+            #print("Adding white game")
+            whiteMoveIndex = addMoves(game, whiteMoves, whiteMoveIndex)
+        if(game.headers["Result"] == "0-1" and blackMoveIndex < numBlackMoves):
+            #print("adding black game")
+            blackMoveIndex = addMoves(game, blackMoves, blackMoveIndex)
 
-        if(game.headers["Result"] == "1-0" and len(whiteMoves) < numWhiteMoves):
-            whiteMoves.extend(addMoves(game))
-        if(game.headers["Result"] == "0-1" and len(blackMoves) < numBlackMoves):
-            blackMoves.extend(addMoves(game))
+        #print(str(whiteMoveIndex) + "\t" + str(blackMoveIndex))
+
+        count += 1
+
+    return whiteMoves, blackMoves
+
+white, black = iterateOverData()
+
+
+np.save("data/white.npy", white)
+np.save("data/black.npy", black)
+
+
+
 
 
