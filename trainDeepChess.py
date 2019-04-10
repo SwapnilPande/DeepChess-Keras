@@ -32,8 +32,8 @@ class DeepchessDataGenerator(Sequence):
         print("\t" + self.blackBoardsFile)
 
         # Load black and white boards from file
-        self.whites = np.zeros((1000, 773))#np.load(whiteBoardsFile)
-        self.blacks = np.ones((1000, 773))#np.load(blackBoardsFile)
+        self.whites = np.load(whiteBoardsFile)
+        self.blacks = np.load(blackBoardsFile)
 
         # Randomize order of each dataset
         np.random.shuffle(self.whites)
@@ -56,8 +56,8 @@ class DeepchessDataGenerator(Sequence):
             blackBatch = self.blacks[startIndex:]
 
         # Generate labels
-        whiteLabels = np.ones((self.batchSize,))
-        blackLabels = np.zeros((self.batchSize,))
+        whiteLabels = np.ones((whiteBatch.shape[0],))
+        blackLabels = np.zeros((blackBatch.shape[0],))
 
         #Create arrays for batchs
         x = np.stack([whiteBatch, blackBatch], axis = 1)
@@ -84,8 +84,8 @@ class DeepchessDataGenerator(Sequence):
     # Shuffle the order of the white and blacks
     def on_epoch_end(self):
         print("DATA GENERATOR: Shuffled white and black boards")
-        np.shuffle(self.whites)
-        np.shuffle(self.blacks)
+        np.random.shuffle(self.whites)
+        np.random.shuffle(self.blacks)
 
 
 
