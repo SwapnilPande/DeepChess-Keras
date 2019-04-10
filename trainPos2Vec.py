@@ -86,9 +86,10 @@ ae = Model(inputLayer, outputLayer)
 for layer, weight in zip(ae.layers[1:], weights):
     # Set weights for each layer
     layer.set_weights(weight)
+    layer.trainable = False
 
 # Save final model
-savePath = os.path.join(weightsPath, "AutoencoderWeights.h5")
+savePath = os.path.join(weightsPath, "Pos2VecModel.h5")
 ae.save(savePath)
 
 
