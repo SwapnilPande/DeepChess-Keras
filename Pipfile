@@ -8,6 +8,8 @@ verify_ssl = true
 [packages]
 python-chess = "*"
 numpy = "*"
+keras = "*"
+tensorflow-gpu = "*"
 
 [requires]
 python_version = "3.7"
