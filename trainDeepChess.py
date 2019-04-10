@@ -76,9 +76,6 @@ class DeepchessDataGenerator(Sequence):
         leftBatch = np.squeeze(leftBatch)
         rightBatch = np.squeeze(rightBatch)
 
-        print(leftBatch.shape)
-        print(rightBatch.shape)
-
         return [leftBatch, rightBatch], labels
 
     # Shuffle the order of the white and blacks
