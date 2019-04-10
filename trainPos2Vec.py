@@ -33,11 +33,13 @@ np.random.shuffle(x)
 print("Successfully loaded data")
 print()
 
+# List to store weights and biases from autoencoder
+weights = []
 
 
 print("------------ Beginning training ------------")
 # Iterate over the autoencoder layers to train one at a time
-#for i in range(len(autoencoderLayers) - 1):
+for i in range(len(autoencoderLayers) - 1):
     print("Training layer with {numNeurons} neurons".format(
         numNeurons = autoencoderLayers[i+1]
     ))
@@ -51,11 +53,13 @@ print("------------ Beginning training ------------")
 
     model = Model(inputs=inputLayer, outputs=outputLayer)
     model.compile(optimizer='adam', loss='mse', metrics=['mse'])
-    model.fit(x, x, epochs=1, batch_size = 256, shuffle = True)
+    model.fit(x, x, epochs=5, batch_size = 256, shuffle = True)
 
     # Extract weights
-    savePath = os.path.join(weightsPath, str(autoencoderLayers[i+1]) + "-weights.npy")
-    np.save(savePath, model.layers[1].get_weights())
+    weights.append(model.layers[1].get_weights())
+    # savePath = os.path.join(weightsPath, str(autoencoderLayers[i+1]) + "-weights.npy")
+    # np.save(savePath, model.layers[1].get_weights())
+
 
     # Keras backend function to get output of hidden layer
     getHiddenOuptut = K.function([model.input],[model.layers[1].output])
@@ -69,6 +73,29 @@ print("------------ Beginning training ------------")
 
     x = getHiddenOuptut([x])[0]
     print(x.shape)
+
+# Build final autoencoder model
+inputLayer = Input(shape=(autoencoderLayers[0],))
+ae1 = Dense(autoencoderLayers[1], activation='relu',trainable=False)(inputLayer)
+ae2 = Dense(autoencoderLayers[2], activation='relu',trainable=False)(ae1)
+ae3 = Dense(autoencoderLayers[3], activation='relu',trainable=False)(ae2)
+outputLayer = Dense(autoencoderLayers[4], activation='relu',trainable=False)(ae3)
+ae = Model(inputLayer, outputLayer)
+
+# Iterate over autoencoder model - skip over input layer
+for layer, weight in zip(ae.layers[1:], weights):
+    # Set weights for each layer
+    layer.set_weights(weight)
+
+# Save final model
+savePath = os.path.join(weightsPath, "AutoencoderWeights.h5")
+ae.save(savePath)
+
+
+
+
+
+
 
 
 
