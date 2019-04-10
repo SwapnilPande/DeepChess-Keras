@@ -1,20 +1,21 @@
-# from keras.layers import Dense, Input, Concatenate
-# from keras.models import Model, load_model
-# from keras.utils import Sequence
-# from keras import backend as K
+from keras.layers import Dense, Input, Concatenate
+from keras.models import Model, load_model
+from keras.utils import Sequence
+from keras import backend as K
 
 import numpy as np
 
 import os
 
+os.environ["CUDA_VISIBLE_DEVICES"]="7"
 # Number of neurons per layer of deepchess
 deepchessLayers = [400, 200, 100, 2]
 
 # Path to Pos2Vec Model
-pos2VecPath = "./data/Pos2Vec.h5"
+pos2VecPath = "./data/Pos2VecModel.h5"
 
 
-class DeepchessDataGenerator:
+class DeepchessDataGenerator(Sequence):
     def __init__(self, batchSize):
         self.batchSize = batchSize
 
@@ -70,7 +71,13 @@ class DeepchessDataGenerator:
         labels[swapIndices == 1] = np.flip(labels[swapIndices == 1], axis = 1)
 
         # Split into two numpy arrays to pass into model
-        leftBatch, rightBatch = np.split(x, axis = 1)
+        leftBatch, rightBatch = np.split(x, 2, axis = 1)
+
+        leftBatch = np.squeeze(leftBatch)
+        rightBatch = np.squeeze(rightBatch)
+
+        print(leftBatch.shape)
+        print(rightBatch.shape)
 
         return [leftBatch, rightBatch], labels
 
