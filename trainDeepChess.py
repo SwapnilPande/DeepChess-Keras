@@ -46,7 +46,6 @@ class DeepchessDataGenerator:
 
     def __getitem__(self, index):
         startIndex = index*self.batchSize
-        print(startIndex)
 
         try: #Full size batch
             whiteBatch = self.whites[startIndex : startIndex + self.batchSize]
@@ -66,11 +65,14 @@ class DeepchessDataGenerator:
         # Randomly switch white and black board
         # Randomly generate array of 1 and 0 of length batchSize
         # Switch each index that contains 1
-        swapIndices = np.random.randint(2, size = self.batchSize)
+        swapIndices = np.random.randint(2, size = x.shape[0])
         x[swapIndices == 1] = np.flip(x[swapIndices == 1], axis = 1)
         labels[swapIndices == 1] = np.flip(labels[swapIndices == 1], axis = 1)
 
-        return x, labels
+        # Split into two numpy arrays to pass into model
+        leftBatch, rightBatch = np.split(x, axis = 1)
+
+        return [leftBatch, rightBatch], labels
 
     # Shuffle the order of the white and blacks
     def on_epoch_end(self):
@@ -84,7 +86,7 @@ class DeepchessDataGenerator:
 weights = []
 
 print("------------ Initialize Data Generator ------------")
-trainGenerator = DeepchessDataGenerator
+trainGenerator = DeepchessDataGenerator(256)
 
 print("------------ Beginning training ------------")
 # Load pos2Vec model
